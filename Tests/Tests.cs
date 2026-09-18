@@ -54,6 +54,17 @@ internal static class Tests
         Assert(!AppStatus.IsInSchedule(H(6), H(22), H(6)), "night end");
         Assert(!AppStatus.IsInSchedule(H(21,59), H(22), H(6)), "night before start");
         Assert(AppStatus.IsInSchedule(H(3), H(8), H(8)), "24h");
+        var mondayNoon = new DateTime(2026, 9, 21, 12, 0, 0);
+        var saturdayNoon = new DateTime(2026, 9, 26, 12, 0, 0);
+        var fridayNight = new DateTime(2026, 9, 25, 23, 0, 0);
+        var saturdayEarly = new DateTime(2026, 9, 26, 2, 0, 0);
+        var sundayEarly = new DateTime(2026, 9, 27, 2, 0, 0);
+        Assert(AppStatus.IsInSchedule(mondayNoon, H(8), H(17), ScheduleDays.Workdays), "workday in workdays");
+        Assert(!AppStatus.IsInSchedule(saturdayNoon, H(8), H(17), ScheduleDays.Workdays), "weekend outside workdays");
+        Assert(AppStatus.IsInSchedule(saturdayNoon, H(8), H(17), ScheduleDays.Weekend), "weekend in weekend");
+        Assert(AppStatus.IsInSchedule(fridayNight, H(22), H(6), ScheduleDays.Friday), "friday night shift evening");
+        Assert(AppStatus.IsInSchedule(saturdayEarly, H(22), H(6), ScheduleDays.Friday), "friday night shift morning on saturday");
+        Assert(!AppStatus.IsInSchedule(sundayEarly, H(22), H(6), ScheduleDays.Friday), "sunday early morning not friday shift");
     }
     private static void NativeLayout()
     {
@@ -104,6 +115,7 @@ internal static class Tests
         if (mode == "--persist-write")
         {
             store.Save(new AppConfiguration { ManuallyEnabled = false, ScheduleEnabled = true, ScheduleStart = H(22), ScheduleEnd = H(6),
+                ScheduleDays = ScheduleDays.Workdays, WifiMode = WifiRuleMode.AllowOnlyOnMatching,
                 ExcludedSsids = new List<string>() });
             using (var form = new SettingsForm(new ConfigurationController(store), message => { throw new Exception(message); }))
             {
@@ -115,7 +127,8 @@ internal static class Tests
         else
         {
             var config = store.Load();
-            Assert(!config.ManuallyEnabled && config.ScheduleEnabled && config.ScheduleStart == H(22) && config.ScheduleEnd == H(6), "restored settings");
+            Assert(!config.ManuallyEnabled && config.ScheduleEnabled && config.ScheduleStart == H(22) && config.ScheduleEnd == H(6) &&
+                config.ScheduleDays == ScheduleDays.Workdays && config.WifiMode == WifiRuleMode.AllowOnlyOnMatching, "restored settings");
             if (mode == "--persist-empty") Assert(config.ExcludedSsids.Count == 0, "empty persisted");
             else Assert(config.ExcludedSsids.SequenceEqual(new[] { "Biuro Łódź", "A & <B> \"C\"", " Dom " }), "unicode and special characters persisted");
         }
@@ -189,6 +202,10 @@ internal static class Tests
         } }, now.AddSeconds(130));
         Assert(state.Complete(now.AddSeconds(130)) && state.NetworkState("office", now.AddSeconds(130)) == "Niewykryta",
             "confirmed empty scan replaces old networks");
+        var allowConfig = new AppConfiguration { WifiMode = WifiRuleMode.AllowOnlyOnMatching, ExcludedSsids = new List<string> { "office" } };
+        Assert(AppStatus.Calculate(allowConfig, new[] { "office" }, DateTime.Now).IsActive, "allow mode active when matched");
+        Assert(AppStatus.Calculate(allowConfig, new[] { "other" }, DateTime.Now).Reason == InactiveReason.WifiMissing, "allow mode inactive when missing");
+        Assert(AppStatus.Calculate(allowConfig, new string[0], DateTime.Now).Reason == InactiveReason.WifiMissing, "allow mode inactive on empty");
     }
     private static async Task Waits()
     {

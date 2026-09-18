@@ -1,18 +1,21 @@
-# Insomnia — naprawiona wersja
+# Insomnia
+
+[![Downloads](https://img.shields.io/github/downloads/karol993/INSOMNIA/total.svg?style=flat-square&color=blue)](https://github.com/karol993/INSOMNIA/releases)
+[![Release](https://img.shields.io/github/v/release/karol993/INSOMNIA?style=flat-square&color=success)](https://github.com/karol993/INSOMNIA/releases/latest)
 
 C# / Windows Forms / .NET Framework 4.8, Windows 10 i 11. Uruchom plik
-`Release/Insomnia.exe` z paczki ZIP. Menu ikony zasobnika i jej dwuklik otwierają
+`Insomnia.exe` z paczki ZIP. Menu ikony zasobnika i jej dwuklik otwierają
 ustawienia. Nie potrzeba uruchamiania jako administrator.
 
-## Ustawienia
+## Ustawienia i funkcje
 
-- Dodaj/Usuń zmieniają listę roboczą. Wpisany tekst trzeba zatwierdzić przez Dodaj.
-- Zastosuj zapisuje na dysku i aktualizuje działanie bez zamykania okna.
-- Zapisz i zamknij zamyka dopiero po udanym zapisie.
-- Anuluj odrzuca zmiany od ostatniego zapisu. Krzyżyk pyta o zapis/odrzucenie/powrót.
-- Przełączenie ręcznego stanu w zasobniku podczas edycji jest zachowywane.
-- Harmonogram: początek włącznie, koniec wyłącznie; zakres przez północ jest
-  obsługiwany, identyczne godziny oznaczają całą dobę.
+- **Harmonogram:** godziny i dni tygodnia (Pn–Nd, szybki wybór dni roboczych). Początek włącznie, koniec wyłącznie; zakres przez północ jest obsługiwany (przypisywany do zmiany z wybranego dnia), identyczne godziny oznaczają całą dobę.
+- **Reguły Wi-Fi:** wybór zachowania programu:
+  - *Wyłączaj program, gdy wykryto sieć z listy* (np. w biurze).
+  - *Działaj tylko wtedy, gdy wykryto sieć z listy* (np. tylko w domu).
+- **Zarządzanie listą SSID:** Dodaj/Usuń zmieniają listę roboczą. Wpisany tekst trzeba zatwierdzić przez Dodaj lub dodać jednym kliknięciem z listy wykrytych sieci w zasięgu.
+- **Transakcyjny zapis:** Zastosuj zapisuje na dysku i aktualizuje działanie bez zamykania okna. Zapisz i zamknij zamyka dopiero po udanym zapisie. Anuluj odrzuca zmiany od ostatniego zapisu. Krzyżyk pyta o zapis/odrzucenie/powrót.
+- **Spójność stanu:** Przełączenie ręcznego stanu w zasobniku podczas edycji w oknie ustawień jest zawsze zachowywane.
 
 Konfiguracja nadal używa Properties.Settings i standardowego pliku user.config
 w profilu użytkownika. Ścieżka jest zależna m.in. od położenia EXE i tożsamości

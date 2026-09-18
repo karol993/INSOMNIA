@@ -7,17 +7,17 @@ $archivePath = Join-Path $PSScriptRoot 'artifacts\Insomnia-Fixed-Release.zip'
 $stream = [System.IO.File]::Open($archivePath, [System.IO.FileMode]::Create)
 $zip = New-Object System.IO.Compression.ZipArchive($stream, [System.IO.Compression.ZipArchiveMode]::Create)
 try {
-    $sourceFiles = Get-ChildItem -LiteralPath $PSScriptRoot -Recurse -File -Force | Where-Object {
-        $relative = $_.FullName.Substring($PSScriptRoot.Length + 1)
-        $relative -notmatch '(^|\\)(\.git|\.vs|bin|obj|artifacts)(\\|$)' -and
-        ($_.Extension -in @('.cs','.csproj','.sln','.resx','.settings','.config','.ico','.jpg','.md','.ps1','.manifest') -or $_.Name -eq '.gitignore')
+    # Place executable and config directly in the root of the archive for easy double-click launch
+    foreach ($file in (Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot 'artifacts\Release') -File | Where-Object { $_.Extension -in @('.exe', '.config') })) {
+        [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $file.FullName, $file.Name) | Out-Null
     }
-    foreach ($file in $sourceFiles) {
-        $name = 'Source/' + $file.FullName.Substring($PSScriptRoot.Length + 1).Replace('\','/')
-        [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $file.FullName, $name) | Out-Null
-    }
-    foreach ($file in (Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot 'artifacts\Release') -File)) {
-        [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $file.FullName, ('Release/' + $file.Name)) | Out-Null
+    $readme = Join-Path $PSScriptRoot 'README.md'
+    if (Test-Path $readme) {
+        [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $readme, 'README.md') | Out-Null
     }
 } finally { $zip.Dispose(); $stream.Dispose() }
+
+$releaseNamedZip = Join-Path $PSScriptRoot 'artifacts\Insomnia-v1.0.0.zip'
+Copy-Item $archivePath $releaseNamedZip -Force
+
 Get-FileHash -LiteralPath $archivePath -Algorithm SHA256

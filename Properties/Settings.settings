@@ -1,4 +1,4 @@
-﻿<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)">
   <Profiles>
     <Profile Name="(Default)" />
@@ -8,6 +8,8 @@
     <Setting Name="ScheduleEnabled" Type="System.Boolean" Scope="User"><Value Profile="(Default)">False</Value></Setting>
     <Setting Name="ScheduleStart" Type="System.TimeSpan" Scope="User"><Value Profile="(Default)">08:00:00</Value></Setting>
     <Setting Name="ScheduleEnd" Type="System.TimeSpan" Scope="User"><Value Profile="(Default)">17:00:00</Value></Setting>
+    <Setting Name="ScheduleDays" Type="System.Int32" Scope="User"><Value Profile="(Default)">127</Value></Setting>
+    <Setting Name="WifiMode" Type="System.Int32" Scope="User"><Value Profile="(Default)">0</Value></Setting>
     <Setting Name="ExcludedSsids" Type="System.Collections.Specialized.StringCollection" Scope="User"><Value Profile="(Default)" /></Setting>
   </Settings>
 </SettingsFile>

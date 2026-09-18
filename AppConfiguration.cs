@@ -5,18 +5,66 @@ using System.Linq;
 
 namespace Insomnia
 {
+    [Flags]
+    internal enum ScheduleDays
+    {
+        None = 0,
+        Monday = 1,
+        Tuesday = 2,
+        Wednesday = 4,
+        Thursday = 8,
+        Friday = 16,
+        Saturday = 32,
+        Sunday = 64,
+        Workdays = Monday | Tuesday | Wednesday | Thursday | Friday,
+        Weekend = Saturday | Sunday,
+        All = Workdays | Weekend
+    }
+
+    internal static class ScheduleDaysExtensions
+    {
+        public static ScheduleDays ToScheduleDay(this DayOfWeek day)
+        {
+            switch (day)
+            {
+                case DayOfWeek.Monday: return ScheduleDays.Monday;
+                case DayOfWeek.Tuesday: return ScheduleDays.Tuesday;
+                case DayOfWeek.Wednesday: return ScheduleDays.Wednesday;
+                case DayOfWeek.Thursday: return ScheduleDays.Thursday;
+                case DayOfWeek.Friday: return ScheduleDays.Friday;
+                case DayOfWeek.Saturday: return ScheduleDays.Saturday;
+                case DayOfWeek.Sunday: return ScheduleDays.Sunday;
+                default: return ScheduleDays.None;
+            }
+        }
+        public static bool ContainsDay(this ScheduleDays days, DayOfWeek day)
+        {
+            return (days & day.ToScheduleDay()) != 0;
+        }
+    }
+
+    internal enum WifiRuleMode
+    {
+        BlockOnMatching = 0,     // Wyłączaj program, gdy wykryto sieć z listy
+        AllowOnlyOnMatching = 1  // Działaj tylko wtedy, gdy wykryto sieć z listy
+    }
+
     internal sealed class AppConfiguration
     {
         public bool ManuallyEnabled { get; set; } = true;
         public bool ScheduleEnabled { get; set; }
         public TimeSpan ScheduleStart { get; set; } = TimeSpan.FromHours(8);
         public TimeSpan ScheduleEnd { get; set; } = TimeSpan.FromHours(17);
+        public ScheduleDays ScheduleDays { get; set; } = ScheduleDays.All;
+        public WifiRuleMode WifiMode { get; set; } = WifiRuleMode.BlockOnMatching;
         public List<string> ExcludedSsids { get; set; } = new List<string>();
 
         public AppConfiguration Clone()
         {
             return new AppConfiguration { ManuallyEnabled = ManuallyEnabled, ScheduleEnabled = ScheduleEnabled,
-                ScheduleStart = ScheduleStart, ScheduleEnd = ScheduleEnd, ExcludedSsids = new List<string>(ExcludedSsids) };
+                ScheduleStart = ScheduleStart, ScheduleEnd = ScheduleEnd,
+                ScheduleDays = ScheduleDays, WifiMode = WifiMode,
+                ExcludedSsids = new List<string>(ExcludedSsids) };
         }
 
         public void Validate()
@@ -24,6 +72,8 @@ namespace Insomnia
             if (ScheduleStart < TimeSpan.Zero || ScheduleStart >= TimeSpan.FromDays(1) ||
                 ScheduleEnd < TimeSpan.Zero || ScheduleEnd >= TimeSpan.FromDays(1))
                 throw new ArgumentException("Godziny muszą mieścić się w jednej dobie.");
+            if (ScheduleEnabled && (ScheduleDays == ScheduleDays.None || (int)ScheduleDays < 0 || (int)ScheduleDays > 127))
+                throw new ArgumentException("Wybierz co najmniej jeden dzień tygodnia w harmonogramie.");
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var ssid in ExcludedSsids)
             {
@@ -46,9 +96,15 @@ namespace Insomnia
         public AppConfiguration Load()
         {
             var settings = new Properties.Settings();
+            int days = settings.ScheduleDays;
+            if (days <= 0 || days > 127) days = 127;
+            int wifiMode = settings.WifiMode;
+            if (wifiMode != 0 && wifiMode != 1) wifiMode = 0;
+
             var value = new AppConfiguration {
                 ManuallyEnabled = settings.ManuallyEnabled, ScheduleEnabled = settings.ScheduleEnabled,
                 ScheduleStart = Minute(settings.ScheduleStart), ScheduleEnd = Minute(settings.ScheduleEnd),
+                ScheduleDays = (ScheduleDays)days, WifiMode = (WifiRuleMode)wifiMode,
                 ExcludedSsids = settings.ExcludedSsids == null ? new List<string>() :
                     settings.ExcludedSsids.Cast<string>().Where(x => !string.IsNullOrWhiteSpace(x))
                         .Distinct(StringComparer.OrdinalIgnoreCase).ToList()
@@ -65,6 +121,7 @@ namespace Insomnia
             var settings = new Properties.Settings {
                 ManuallyEnabled = configuration.ManuallyEnabled, ScheduleEnabled = configuration.ScheduleEnabled,
                 ScheduleStart = configuration.ScheduleStart, ScheduleEnd = configuration.ScheduleEnd,
+                ScheduleDays = (int)configuration.ScheduleDays, WifiMode = (int)configuration.WifiMode,
                 ExcludedSsids = new StringCollection()
             };
             settings.ExcludedSsids.AddRange(configuration.ExcludedSsids.ToArray());

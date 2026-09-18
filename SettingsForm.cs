@@ -14,6 +14,19 @@ namespace Insomnia
         private readonly CheckBox useSchedule = new CheckBox { Text = "Korzystaj z harmonogramu", AutoSize = true };
         private readonly DateTimePicker start = TimePicker("Początek harmonogramu");
         private readonly DateTimePicker end = TimePicker("Koniec harmonogramu");
+        private readonly CheckBox[] dayBoxes = new[] {
+            new CheckBox { Text = "Pn", AutoSize = true, Tag = ScheduleDays.Monday },
+            new CheckBox { Text = "Wt", AutoSize = true, Tag = ScheduleDays.Tuesday },
+            new CheckBox { Text = "Śr", AutoSize = true, Tag = ScheduleDays.Wednesday },
+            new CheckBox { Text = "Czw", AutoSize = true, Tag = ScheduleDays.Thursday },
+            new CheckBox { Text = "Pt", AutoSize = true, Tag = ScheduleDays.Friday },
+            new CheckBox { Text = "Sb", AutoSize = true, Tag = ScheduleDays.Saturday },
+            new CheckBox { Text = "Nd", AutoSize = true, Tag = ScheduleDays.Sunday }
+        };
+        private readonly Button btnWorkdays = Button("Dni robocze (Pn–Pt)");
+        private readonly Button btnAllDays = Button("Wszystkie");
+        private readonly RadioButton rbBlockWifi = new RadioButton { Text = "Wyłączaj program, gdy wykryto sieć z listy (np. w biurze)", AutoSize = true };
+        private readonly RadioButton rbAllowWifi = new RadioButton { Text = "Działaj tylko wtedy, gdy wykryto sieć z listy (np. w domu)", AutoSize = true };
         private readonly ListView excluded = new ListView { View = View.Details, FullRowSelect = true, HideSelection = false, MultiSelect = false, Height = 138, Dock = DockStyle.Top };
         private readonly ListBox detected = new ListBox { Height = 108, Dock = DockStyle.Top, IntegralHeight = false, HorizontalScrollbar = true };
         private readonly TextBox ssid = new TextBox { Dock = DockStyle.Fill, AccessibleName = "Nazwa sieci SSID" };
@@ -40,8 +53,8 @@ namespace Insomnia
             AutoScaleDimensions = new SizeF(96, 96);
             AutoScaleMode = AutoScaleMode.Dpi;
             BackColor = Color.FromArgb(246, 248, 251);
-            ClientSize = new Size(680, 780);
-            MinimumSize = new Size(620, 480);
+            ClientSize = new Size(680, 840);
+            MinimumSize = new Size(620, 520);
             StartPosition = FormStartPosition.CenterScreen;
 
             var root = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3 };
@@ -71,13 +84,24 @@ namespace Insomnia
             times.Controls.Add(TextLabel("Od")); times.Controls.Add(start);
             times.Controls.Add(TextLabel("Do")); times.Controls.Add(end);
             Add(content, times);
-            Add(content, TextLabel("Te same godziny oznaczają całą dobę. Obsługiwany jest zakres przez północ."));
+            var daysFlow = Flow();
+            daysFlow.Controls.Add(TextLabel("Dni:"));
+            foreach (var cb in dayBoxes) daysFlow.Controls.Add(cb);
+            daysFlow.Controls.Add(btnWorkdays);
+            daysFlow.Controls.Add(btnAllDays);
+            Add(content, daysFlow);
+            Add(content, TextLabel("Te same godziny oznaczają całą dobę. Obsługiwany jest zakres przez północ (godziny nocne przypisywane są do zmiany z wybranego dnia)."));
 
-            Add(content, SectionTitle("Sieci wyłączające program"));
+            Add(content, SectionTitle("Reguły sieci Wi-Fi"));
+            Add(content, TextLabel("Wybierz zachowanie programu przy wykryciu sieci z poniższej listy:"));
+            var wifiModeFlow = Flow();
+            wifiModeFlow.Controls.Add(rbBlockWifi);
+            wifiModeFlow.Controls.Add(rbAllowWifi);
+            Add(content, wifiModeFlow);
             Add(content, TextLabel("Dodawaj do listy roboczej, a następnie wybierz Zastosuj lub Zapisz i zamknij."));
             excluded.Columns.Add("Zapisane / edytowane SSID", 340);
             excluded.Columns.Add("Widoczność", 210);
-            excluded.AccessibleName = "Sieci wyłączające program";
+            excluded.AccessibleName = "Lista sieci Wi-Fi";
             Add(content, excluded);
             var entry = new TableLayoutPanel { AutoSize = true, Dock = DockStyle.Top, ColumnCount = 2, RowCount = 1 };
             entry.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
@@ -97,7 +121,7 @@ namespace Insomnia
             Add(content, detected);
             var scanButtons = Flow();
             refresh.Click += (s, e) => RefreshRequested?.Invoke(this, EventArgs.Empty);
-            var addDetected = Button("Dodaj zaznaczoną do wykluczeń");
+            var addDetected = Button("Dodaj zaznaczoną do listy sieci");
             addDetected.Click += (s, e) => { if (detected.SelectedItem != null) AddSsid((string)detected.SelectedItem, false); else this.reportError("Zaznacz wykrytą sieć."); };
             scanButtons.Controls.Add(refresh); scanButtons.Controls.Add(addDetected);
             Add(content, scanButtons);
@@ -131,10 +155,18 @@ namespace Insomnia
             useSchedule.Checked = baseline.ScheduleEnabled;
             start.Value = DateTime.Today + baseline.ScheduleStart;
             end.Value = DateTime.Today + baseline.ScheduleEnd;
+            SetSelectedDays(baseline.ScheduleDays);
+            rbBlockWifi.Checked = (baseline.WifiMode == WifiRuleMode.BlockOnMatching);
+            rbAllowWifi.Checked = (baseline.WifiMode == WifiRuleMode.AllowOnlyOnMatching);
             foreach (string name in baseline.ExcludedSsids) excluded.Items.Add(new ListViewItem(new[] { name, "Brak aktualnych danych" }));
             useSchedule.CheckedChanged += (s, e) => { UpdateSchedule(); UpdateDirty(); };
             start.ValueChanged += (s, e) => UpdateDirty();
             end.ValueChanged += (s, e) => UpdateDirty();
+            foreach (var cb in dayBoxes) cb.CheckedChanged += (s, e) => UpdateDirty();
+            btnWorkdays.Click += (s, e) => { SetSelectedDays(ScheduleDays.Workdays); UpdateDirty(); };
+            btnAllDays.Click += (s, e) => { SetSelectedDays(ScheduleDays.All); UpdateDirty(); };
+            rbBlockWifi.CheckedChanged += (s, e) => UpdateDirty();
+            rbAllowWifi.CheckedChanged += (s, e) => UpdateDirty();
             ssid.TextChanged += (s, e) => UpdateDirty();
             UpdateSchedule();
             FormClosing += OnClosing;
@@ -166,12 +198,34 @@ namespace Insomnia
         {
             foreach (var label in panel.Controls.OfType<Label>()) label.MaximumSize = new Size(Math.Max(100, width), 0);
         }
-        private void UpdateSchedule() { start.Enabled = end.Enabled = useSchedule.Checked; }
+        private void UpdateSchedule()
+        {
+            bool enabled = useSchedule.Checked;
+            start.Enabled = end.Enabled = enabled;
+            foreach (var cb in dayBoxes) cb.Enabled = enabled;
+            btnWorkdays.Enabled = btnAllDays.Enabled = enabled;
+        }
+        private ScheduleDays GetSelectedDays()
+        {
+            ScheduleDays result = ScheduleDays.None;
+            foreach (var cb in dayBoxes) { if (cb.Checked) result |= (ScheduleDays)cb.Tag; }
+            return result;
+        }
+        private void SetSelectedDays(ScheduleDays days)
+        {
+            foreach (var cb in dayBoxes)
+            {
+                var day = (ScheduleDays)cb.Tag;
+                cb.Checked = (days & day) == day;
+            }
+        }
         private AppConfiguration Draft()
         {
             return new AppConfiguration { ScheduleEnabled = useSchedule.Checked,
                 ScheduleStart = TimeSpan.FromMinutes(start.Value.Hour * 60 + start.Value.Minute),
                 ScheduleEnd = TimeSpan.FromMinutes(end.Value.Hour * 60 + end.Value.Minute),
+                ScheduleDays = GetSelectedDays(),
+                WifiMode = rbAllowWifi.Checked ? WifiRuleMode.AllowOnlyOnMatching : WifiRuleMode.BlockOnMatching,
                 ExcludedSsids = excluded.Items.Cast<ListViewItem>().Select(x => x.Text).ToList() };
         }
         internal bool HasChanges
@@ -180,6 +234,7 @@ namespace Insomnia
                 var draft = Draft();
                 return ssid.Text.Length != 0 || draft.ScheduleEnabled != baseline.ScheduleEnabled ||
                     draft.ScheduleStart != baseline.ScheduleStart || draft.ScheduleEnd != baseline.ScheduleEnd ||
+                    draft.ScheduleDays != baseline.ScheduleDays || draft.WifiMode != baseline.WifiMode ||
                     !draft.ExcludedSsids.SequenceEqual(baseline.ExcludedSsids, StringComparer.Ordinal);
             }
         }
