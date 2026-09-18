@@ -12,6 +12,7 @@ ustawienia. Nie potrzeba uruchamiania jako administrator.
 Okno ustawień podzielone jest na czytelne karty:
 
 ### Karta 1: Harmonogram i Wi-Fi
+- **Autostart z Windows:** opcja automatycznego startu programu w tle przy logowaniu użytkownika (rejestr `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, bez potrzeby uprawnień administratora).
 - **Harmonogram:** godziny i dni tygodnia (Pn–Nd). Początek włącznie, koniec wyłącznie; zakres przez północ jest obsługiwany (przypisywany do zmiany z wybranego dnia), identyczne godziny oznaczają całą dobę.
 - **Reguły Wi-Fi:** wybór zachowania programu:
   - *Wyłączaj program, gdy wykryto sieć z listy* (np. w biurze).

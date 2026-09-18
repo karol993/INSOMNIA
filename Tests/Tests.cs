@@ -10,6 +10,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Microsoft.Win32;
 using Insomnia;
 
 internal static class Tests
@@ -22,11 +23,13 @@ internal static class Tests
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
+            StartupManager.Instance = new MemoryStartupManager();
             if (args.Length > 0 && args[0].StartsWith("--persist-")) return PersistenceChild(args[0]);
             if (args.Contains("--ui")) { ShowPreview(); return 0; }
             if (args.Contains("--hardware")) { Hardware(); return 0; }
             Test("schedule and exact boundaries", Schedule);
             Test("native sizes, offsets and consecutive records", NativeLayout);
+            Test("autostart registry operations, quoting and memory toggle", StartupTest);
             Test("configuration survives fresh processes including empty list", Persistence);
             Test("transactional edit, manual toggle and failure", Editing);
             Test("real form edit, apply failure, retry, cancel", FormEditing);
@@ -192,6 +195,13 @@ internal static class Tests
             Assert(form.TryApply(), "apply with F15 and AltTab succeeds");
             Assert(controller.Current.SimulationActions == (SimulationActions.F15Key | SimulationActions.AltTab), "SimulationActions updated in controller");
 
+            var autostartBox = Descendants(form).OfType<CheckBox>().Single(c => c.AccessibleName == "Uruchamiaj program przy starcie systemu Windows (Autostart)");
+            Assert(!autostartBox.Checked, "initial autostart false");
+            autostartBox.Checked = true;
+            Assert(form.HasChanges, "autostart dirty");
+            Assert(form.TryApply(), "apply with autostart");
+            Assert(controller.Current.StartWithWindows, "StartWithWindows true in controller");
+
             form.Show();
             form.AddSsid("Unapplied", false);
             Descendants(form).OfType<Button>().Single(b => b.Text == "Anuluj").PerformClick();
@@ -200,6 +210,43 @@ internal static class Tests
         }
         Assert(controller.Current.ExcludedSsids.SequenceEqual(new[] { "Biuro" }), "discard since last apply");
         Assert(errors.Count == 4, "readable validation and save errors");
+    }
+    private static void StartupTest()
+    {
+        const string testKey = @"Software\InsomniaTest\Run";
+        try { Registry.CurrentUser.DeleteSubKeyTree(@"Software\InsomniaTest", false); } catch { }
+
+        var regManager = new RegistryStartupManager(testKey, "InsomniaTestApp", @"C:\Test\Insomnia.exe");
+        Assert(!regManager.IsStartupEnabled(), "initial not enabled");
+
+        regManager.SetStartup(true);
+        Assert(regManager.IsStartupEnabled(), "enabled after set");
+
+        using (var key = Registry.CurrentUser.OpenSubKey(testKey, false))
+        {
+            Assert(key != null, "registry key created");
+            var val = key.GetValue("InsomniaTestApp") as string;
+            Assert(val == "\"C:\\Test\\Insomnia.exe\"", "properly quoted path");
+        }
+
+        regManager.SetStartup(false);
+        Assert(!regManager.IsStartupEnabled(), "disabled after unset");
+
+        using (var key = Registry.CurrentUser.OpenSubKey(testKey, false))
+        {
+            Assert(key != null && key.GetValue("InsomniaTestApp") == null, "value removed");
+        }
+
+        try { Registry.CurrentUser.DeleteSubKeyTree(@"Software\InsomniaTest", false); } catch { }
+
+        var mem = new MemoryStartupManager(false);
+        Assert(!mem.IsStartupEnabled(), "mem initial false");
+        mem.SetStartup(true);
+        Assert(mem.IsStartupEnabled(), "mem true after set");
+        mem.Fail = true;
+        bool threw = false;
+        try { mem.SetStartup(false); } catch (InvalidOperationException) { threw = true; }
+        Assert(threw, "mem fails when configured");
     }
     private static void WifiExpiry()
     {

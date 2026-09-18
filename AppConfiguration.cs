@@ -69,6 +69,7 @@ namespace Insomnia
         public ScheduleDays ScheduleDays { get; set; } = ScheduleDays.All;
         public WifiRuleMode WifiMode { get; set; } = WifiRuleMode.BlockOnMatching;
         public SimulationActions SimulationActions { get; set; } = SimulationActions.Default;
+        public bool StartWithWindows { get; set; }
         public List<string> ExcludedSsids { get; set; } = new List<string>();
 
         public AppConfiguration Clone()
@@ -77,6 +78,7 @@ namespace Insomnia
                 ScheduleStart = ScheduleStart, ScheduleEnd = ScheduleEnd,
                 ScheduleDays = ScheduleDays, WifiMode = WifiMode,
                 SimulationActions = SimulationActions,
+                StartWithWindows = StartWithWindows,
                 ExcludedSsids = new List<string>(ExcludedSsids) };
         }
 
@@ -123,6 +125,7 @@ namespace Insomnia
                 ScheduleStart = Minute(settings.ScheduleStart), ScheduleEnd = Minute(settings.ScheduleEnd),
                 ScheduleDays = (ScheduleDays)days, WifiMode = (WifiRuleMode)wifiMode,
                 SimulationActions = (SimulationActions)actions,
+                StartWithWindows = StartupManager.IsStartupEnabled(),
                 ExcludedSsids = settings.ExcludedSsids == null ? new List<string>() :
                     settings.ExcludedSsids.Cast<string>().Where(x => !string.IsNullOrWhiteSpace(x))
                         .Distinct(StringComparer.OrdinalIgnoreCase).ToList()
@@ -136,6 +139,7 @@ namespace Insomnia
         public void Save(AppConfiguration configuration)
         {
             configuration.Validate();
+            StartupManager.SetStartup(configuration.StartWithWindows);
             var settings = new Properties.Settings {
                 ManuallyEnabled = configuration.ManuallyEnabled, ScheduleEnabled = configuration.ScheduleEnabled,
                 ScheduleStart = configuration.ScheduleStart, ScheduleEnd = configuration.ScheduleEnd,

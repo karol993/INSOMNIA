@@ -32,6 +32,7 @@ namespace Insomnia
         private readonly CheckBox cbSimF15 = new CheckBox { Text = "Niewidoczny klawisz F15 (dyskretny impuls bez ruszania kursorem)", AutoSize = true, AccessibleName = "Niewidoczny klawisz F15" };
         private readonly CheckBox cbSimMouseWheel = new CheckBox { Text = "Kółko myszy (subtelna aktywność dla przeglądarek i dokumentów)", AutoSize = true, AccessibleName = "Kółko myszy" };
         private readonly CheckBox cbSimAltTab = new CheckBox { Text = "Przełączanie okien Alt+Tab (dla narzędzi monitorujących, np. Time Doctor)", AutoSize = true, AccessibleName = "Przełączanie okien Alt+Tab" };
+        private readonly CheckBox cbAutostart = new CheckBox { Text = "Uruchamiaj program przy starcie systemu Windows (Autostart)", AutoSize = true, AccessibleName = "Uruchamiaj program przy starcie systemu Windows (Autostart)" };
         private readonly Label statusLabel = TextLabel("");
         private readonly Label dirtyLabel = TextLabel("Brak niezapisanych zmian");
         private readonly Label diagnostics = TextLabel("Oczekiwanie na pierwszy skan.");
@@ -87,6 +88,10 @@ namespace Insomnia
             contentRules.Padding = new Padding(0, 0, 0, 16);
             scrollRules.Controls.Add(contentRules);
             tabRules.Controls.Add(scrollRules);
+
+            Add(contentRules, SectionTitle("Autostart"));
+            Add(contentRules, cbAutostart);
+            Add(contentRules, TextLabel("Automatycznie uruchamia program w tle po zalogowaniu do systemu Windows (nie wymaga uprawnień administratora)."));
 
             Add(contentRules, SectionTitle("Harmonogram"));
             Add(contentRules, useSchedule);
@@ -215,7 +220,9 @@ namespace Insomnia
             rbBlockWifi.Checked = (baseline.WifiMode == WifiRuleMode.BlockOnMatching);
             rbAllowWifi.Checked = (baseline.WifiMode == WifiRuleMode.AllowOnlyOnMatching);
             SetSelectedSimulationActions(baseline.SimulationActions);
+            cbAutostart.Checked = baseline.StartWithWindows;
             foreach (string name in baseline.ExcludedSsids) excluded.Items.Add(new ListViewItem(new[] { name, "Brak aktualnych danych" }));
+            cbAutostart.CheckedChanged += (s, e) => UpdateDirty();
             useSchedule.CheckedChanged += (s, e) => { UpdateSchedule(); UpdateDirty(); };
             start.ValueChanged += (s, e) => UpdateDirty();
             end.ValueChanged += (s, e) => UpdateDirty();
@@ -310,6 +317,7 @@ namespace Insomnia
                 ScheduleDays = GetSelectedDays(),
                 WifiMode = rbAllowWifi.Checked ? WifiRuleMode.AllowOnlyOnMatching : WifiRuleMode.BlockOnMatching,
                 SimulationActions = GetSelectedSimulationActions(),
+                StartWithWindows = cbAutostart.Checked,
                 ExcludedSsids = excluded.Items.Cast<ListViewItem>().Select(x => x.Text).ToList() };
         }
         internal bool HasChanges
@@ -320,6 +328,7 @@ namespace Insomnia
                     draft.ScheduleStart != baseline.ScheduleStart || draft.ScheduleEnd != baseline.ScheduleEnd ||
                     draft.ScheduleDays != baseline.ScheduleDays || draft.WifiMode != baseline.WifiMode ||
                     draft.SimulationActions != baseline.SimulationActions ||
+                    draft.StartWithWindows != baseline.StartWithWindows ||
                     !draft.ExcludedSsids.SequenceEqual(baseline.ExcludedSsids, StringComparer.Ordinal);
             }
         }
