@@ -2,7 +2,7 @@ $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
 # Always build first. Never package an executable from an earlier build.
 & .\build.ps1
-Add-Type -AssemblyName System.IO.Compression.FileSystem
+Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
 $archivePath = Join-Path $PSScriptRoot 'artifacts\Insomnia-Fixed-Release.zip'
 $stream = [System.IO.File]::Open($archivePath, [System.IO.FileMode]::Create)
 $zip = New-Object System.IO.Compression.ZipArchive($stream, [System.IO.Compression.ZipArchiveMode]::Create)
