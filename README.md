@@ -9,11 +9,28 @@ ustawienia. Nie potrzeba uruchamiania jako administrator.
 
 ## Ustawienia i funkcje
 
-- **Harmonogram:** godziny i dni tygodnia (Pn–Nd, szybki wybór dni roboczych). Początek włącznie, koniec wyłącznie; zakres przez północ jest obsługiwany (przypisywany do zmiany z wybranego dnia), identyczne godziny oznaczają całą dobę.
+Okno ustawień podzielone jest na czytelne karty:
+
+### Karta 1: Harmonogram i Wi-Fi
+- **Harmonogram:** godziny i dni tygodnia (Pn–Nd). Początek włącznie, koniec wyłącznie; zakres przez północ jest obsługiwany (przypisywany do zmiany z wybranego dnia), identyczne godziny oznaczają całą dobę.
 - **Reguły Wi-Fi:** wybór zachowania programu:
   - *Wyłączaj program, gdy wykryto sieć z listy* (np. w biurze).
   - *Działaj tylko wtedy, gdy wykryto sieć z listy* (np. tylko w domu).
 - **Zarządzanie listą SSID:** Dodaj/Usuń zmieniają listę roboczą. Wpisany tekst trzeba zatwierdzić przez Dodaj lub dodać jednym kliknięciem z listy wykrytych sieci w zasięgu.
+- **Diagnostyka adapterów:** podgląd aktualnie wykrytych sieci w zasięgu, status skanowania i bezpośredni skrót do ustawień uprawnień lokalizacji Windows.
+
+### Karta 2: Symulacja i Zgodność
+- **Wybór działań symulacji:** użytkownik decyduje, jakie impulsy generuje program (losowane z włączonych opcji co ok. 30 s po 25 s bezczynności):
+  - *Mikro-ruchy myszą* (płynny micro-jitter kursora o kilka pikseli)
+  - *Niewidoczny klawisz F15* (kod wirtualny `0x7E`, nie wpisuje znaków i nie koliduje z żadnymi skrótami w Windows, Office ani CAD)
+  - *Kółko myszy* (dyskretny scroll w dół i w górę)
+  - *Przełączanie okien Alt+Tab* (domyślnie wyłączone; przydatne przy narzędziach monitorujących nazwy aktywnych okien)
+- **Wspierane aplikacje i skuteczność:**
+  - 🟢 **Microsoft Teams (Desktop & Web)** — stały zielony status „Dostępny” (Available), brak przechodzenia w „Zaraz wracam” (Away).
+  - 🟢 **Slack / Skype / Zoom / Webex** — reset liczników nieaktywności, stały status online.
+  - 🟢 **Blokada ekranu Windows (GPO / Intune)** — brak uśpienia i wygaszacza ekranu dzięki impulsom wejściowym i `EXECUTION_STATE`.
+  - 🟡 **Narzędzia ewidencji czasu (Time Doctor, Hubstaff, DeskTime)** — rejestrowanie aktywności myszy/klawiatury (oraz okien przy włączonym Alt+Tab).
+
 - **Transakcyjny zapis:** Zastosuj zapisuje na dysku i aktualizuje działanie bez zamykania okna. Zapisz i zamknij zamyka dopiero po udanym zapisie. Anuluj odrzuca zmiany od ostatniego zapisu. Krzyżyk pyta o zapis/odrzucenie/powrót.
 - **Spójność stanu:** Przełączenie ręcznego stanu w zasobniku podczas edycji w oknie ustawień jest zawsze zachowywane.
 

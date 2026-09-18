@@ -10,6 +10,7 @@
     <Setting Name="ScheduleEnd" Type="System.TimeSpan" Scope="User"><Value Profile="(Default)">17:00:00</Value></Setting>
     <Setting Name="ScheduleDays" Type="System.Int32" Scope="User"><Value Profile="(Default)">127</Value></Setting>
     <Setting Name="WifiMode" Type="System.Int32" Scope="User"><Value Profile="(Default)">0</Value></Setting>
+    <Setting Name="SimulationActions" Type="System.Int32" Scope="User"><Value Profile="(Default)">7</Value></Setting>
     <Setting Name="ExcludedSsids" Type="System.Collections.Specialized.StringCollection" Scope="User"><Value Profile="(Default)" /></Setting>
   </Settings>
 </SettingsFile>

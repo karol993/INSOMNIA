@@ -49,6 +49,17 @@ namespace Insomnia
         AllowOnlyOnMatching = 1  // Działaj tylko wtedy, gdy wykryto sieć z listy
     }
 
+    [Flags]
+    internal enum SimulationActions
+    {
+        None = 0,
+        MouseMove = 1,
+        MouseWheel = 2,
+        F15Key = 4,
+        AltTab = 8,
+        Default = MouseMove | MouseWheel | F15Key // 7
+    }
+
     internal sealed class AppConfiguration
     {
         public bool ManuallyEnabled { get; set; } = true;
@@ -57,6 +68,7 @@ namespace Insomnia
         public TimeSpan ScheduleEnd { get; set; } = TimeSpan.FromHours(17);
         public ScheduleDays ScheduleDays { get; set; } = ScheduleDays.All;
         public WifiRuleMode WifiMode { get; set; } = WifiRuleMode.BlockOnMatching;
+        public SimulationActions SimulationActions { get; set; } = SimulationActions.Default;
         public List<string> ExcludedSsids { get; set; } = new List<string>();
 
         public AppConfiguration Clone()
@@ -64,6 +76,7 @@ namespace Insomnia
             return new AppConfiguration { ManuallyEnabled = ManuallyEnabled, ScheduleEnabled = ScheduleEnabled,
                 ScheduleStart = ScheduleStart, ScheduleEnd = ScheduleEnd,
                 ScheduleDays = ScheduleDays, WifiMode = WifiMode,
+                SimulationActions = SimulationActions,
                 ExcludedSsids = new List<string>(ExcludedSsids) };
         }
 
@@ -74,6 +87,8 @@ namespace Insomnia
                 throw new ArgumentException("Godziny muszą mieścić się w jednej dobie.");
             if (ScheduleEnabled && (ScheduleDays == ScheduleDays.None || (int)ScheduleDays < 0 || (int)ScheduleDays > 127))
                 throw new ArgumentException("Wybierz co najmniej jeden dzień tygodnia w harmonogramie.");
+            if (SimulationActions == SimulationActions.None || ((int)SimulationActions & ~15) != 0)
+                throw new ArgumentException("Wybierz co najmniej jedno działanie symulacji.");
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var ssid in ExcludedSsids)
             {
@@ -100,11 +115,14 @@ namespace Insomnia
             if (days <= 0 || days > 127) days = 127;
             int wifiMode = settings.WifiMode;
             if (wifiMode != 0 && wifiMode != 1) wifiMode = 0;
+            int actions = settings.SimulationActions;
+            if (actions <= 0 || actions > 15) actions = (int)SimulationActions.Default;
 
             var value = new AppConfiguration {
                 ManuallyEnabled = settings.ManuallyEnabled, ScheduleEnabled = settings.ScheduleEnabled,
                 ScheduleStart = Minute(settings.ScheduleStart), ScheduleEnd = Minute(settings.ScheduleEnd),
                 ScheduleDays = (ScheduleDays)days, WifiMode = (WifiRuleMode)wifiMode,
+                SimulationActions = (SimulationActions)actions,
                 ExcludedSsids = settings.ExcludedSsids == null ? new List<string>() :
                     settings.ExcludedSsids.Cast<string>().Where(x => !string.IsNullOrWhiteSpace(x))
                         .Distinct(StringComparer.OrdinalIgnoreCase).ToList()
@@ -122,6 +140,7 @@ namespace Insomnia
                 ManuallyEnabled = configuration.ManuallyEnabled, ScheduleEnabled = configuration.ScheduleEnabled,
                 ScheduleStart = configuration.ScheduleStart, ScheduleEnd = configuration.ScheduleEnd,
                 ScheduleDays = (int)configuration.ScheduleDays, WifiMode = (int)configuration.WifiMode,
+                SimulationActions = (int)configuration.SimulationActions,
                 ExcludedSsids = new StringCollection()
             };
             settings.ExcludedSsids.AddRange(configuration.ExcludedSsids.ToArray());

@@ -44,6 +44,10 @@ namespace Insomnia.Properties
         public int WifiMode { get { return (int)this["WifiMode"]; } set { this["WifiMode"] = value; } }
 
         [global::System.Configuration.UserScopedSetting]
+        [global::System.Configuration.DefaultSettingValue("7")]
+        public int SimulationActions { get { return (int)this["SimulationActions"]; } set { this["SimulationActions"] = value; } }
+
+        [global::System.Configuration.UserScopedSetting]
         [global::System.Configuration.DefaultSettingValue("")]
         public global::System.Collections.Specialized.StringCollection ExcludedSsids { get { return (global::System.Collections.Specialized.StringCollection)this["ExcludedSsids"]; } set { this["ExcludedSsids"] = value; } }
     }

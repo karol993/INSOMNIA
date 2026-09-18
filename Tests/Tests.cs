@@ -116,6 +116,7 @@ internal static class Tests
         {
             store.Save(new AppConfiguration { ManuallyEnabled = false, ScheduleEnabled = true, ScheduleStart = H(22), ScheduleEnd = H(6),
                 ScheduleDays = ScheduleDays.Workdays, WifiMode = WifiRuleMode.AllowOnlyOnMatching,
+                SimulationActions = SimulationActions.MouseMove | SimulationActions.F15Key,
                 ExcludedSsids = new List<string>() });
             using (var form = new SettingsForm(new ConfigurationController(store), message => { throw new Exception(message); }))
             {
@@ -128,7 +129,8 @@ internal static class Tests
         {
             var config = store.Load();
             Assert(!config.ManuallyEnabled && config.ScheduleEnabled && config.ScheduleStart == H(22) && config.ScheduleEnd == H(6) &&
-                config.ScheduleDays == ScheduleDays.Workdays && config.WifiMode == WifiRuleMode.AllowOnlyOnMatching, "restored settings");
+                config.ScheduleDays == ScheduleDays.Workdays && config.WifiMode == WifiRuleMode.AllowOnlyOnMatching &&
+                config.SimulationActions == (SimulationActions.MouseMove | SimulationActions.F15Key), "restored settings");
             if (mode == "--persist-empty") Assert(config.ExcludedSsids.Count == 0, "empty persisted");
             else Assert(config.ExcludedSsids.SequenceEqual(new[] { "Biuro Łódź", "A & <B> \"C\"", " Dom " }), "unicode and special characters persisted");
         }
@@ -143,6 +145,15 @@ internal static class Tests
     }
     private static void Editing()
     {
+        var bad = new AppConfiguration { SimulationActions = SimulationActions.None };
+        bool threw = false;
+        try { bad.Validate(); } catch (ArgumentException) { threw = true; }
+        Assert(threw, "validation rejects empty simulation actions");
+        bad.SimulationActions = (SimulationActions)31;
+        threw = false;
+        try { bad.Validate(); } catch (ArgumentException) { threw = true; }
+        Assert(threw, "validation rejects out of range simulation actions");
+
         var store = new MemoryStore(); var controller = new ConfigurationController(store);
         var draft = controller.Current.Clone(); draft.ExcludedSsids.Add("Office");
         Assert(controller.Current.ExcludedSsids.Count == 0, "cancel does not modify current");
@@ -168,6 +179,19 @@ internal static class Tests
             Assert(!form.TryApply() && form.HasChanges && controller.Current.ExcludedSsids.Count == 0, "failed form save retains draft");
             store.Fail = false;
             Assert(form.TryApply() && !form.HasChanges && controller.Current.ExcludedSsids.Count == 1, "successful apply");
+
+            var simBoxes = Descendants(form).OfType<CheckBox>()
+                .Where(c => c.AccessibleName != null && (c.AccessibleName.StartsWith("Mikro-") || c.AccessibleName == "Niewidoczny klawisz F15" || c.AccessibleName == "Kółko myszy" || c.AccessibleName == "Przełączanie okien Alt+Tab"))
+                .ToList();
+            Assert(simBoxes.Count == 4, "4 simulation checkboxes present");
+            foreach (var cb in simBoxes) cb.Checked = false;
+            Assert(!form.TryApply(), "validation fails when all simulation actions unchecked");
+            Assert(errors.Last().Contains("Wybierz co najmniej jedno działanie symulacji"), "error message mentions simulation actions");
+            simBoxes.Single(c => c.AccessibleName == "Niewidoczny klawisz F15").Checked = true;
+            simBoxes.Single(c => c.AccessibleName == "Przełączanie okien Alt+Tab").Checked = true;
+            Assert(form.TryApply(), "apply with F15 and AltTab succeeds");
+            Assert(controller.Current.SimulationActions == (SimulationActions.F15Key | SimulationActions.AltTab), "SimulationActions updated in controller");
+
             form.Show();
             form.AddSsid("Unapplied", false);
             Descendants(form).OfType<Button>().Single(b => b.Text == "Anuluj").PerformClick();
@@ -175,7 +199,7 @@ internal static class Tests
             Assert(form.IsDisposed, "Cancel closes without saving");
         }
         Assert(controller.Current.ExcludedSsids.SequenceEqual(new[] { "Biuro" }), "discard since last apply");
-        Assert(errors.Count == 3, "readable validation and save errors");
+        Assert(errors.Count == 4, "readable validation and save errors");
     }
     private static void WifiExpiry()
     {
@@ -282,6 +306,10 @@ internal static class Tests
                 var rectangle = form.RectangleToClient(button.RectangleToScreen(button.ClientRectangle));
                 Assert(button.Visible && form.ClientRectangle.Contains(rectangle), scale + ": footer clipped: " + button.Text);
             }
+            var tabControl = Descendants(form).OfType<TabControl>().Single();
+            Assert(tabControl.TabCount == 2, "two tabs present");
+            Assert(tabControl.TabPages[0].Text == "Harmonogram i Wi-Fi", "tab 1 title");
+            Assert(tabControl.TabPages[1].Text == "Symulacja i Zgodność", "tab 2 title");
             Assert(Descendants(form).OfType<DateTimePicker>().All(p => !p.Enabled && p.CustomFormat == "HH:mm"), "time format / enabled");
             form.Close();
         }

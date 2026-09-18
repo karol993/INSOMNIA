@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Threading;
 
@@ -21,7 +22,14 @@ namespace Insomnia
         private static uint GetIdleTime() { var info = new LastInputInfo { cbSize = (uint)Marshal.SizeOf(typeof(LastInputInfo)) }; GetLastInputInfo(ref info); return (uint)Environment.TickCount - info.dwTime; }
         private void PerformStealthActivity()
         {
-            if (random.Next(100) < 45) MicroMouseMovement(); else if (random.Next(100) < 75) SendMouseWheel(random.Next(2) == 0 ? 120 : -120); else if (random.Next(100) < 90) SendKeyPress(0x10); else SwitchWindowActivity();
+            var actions = controller.Current.SimulationActions;
+            var list = new List<Action>();
+            if ((actions & SimulationActions.MouseMove) != 0) list.Add(MicroMouseMovement);
+            if ((actions & SimulationActions.MouseWheel) != 0) list.Add(() => SendMouseWheel(random.Next(2) == 0 ? 120 : -120));
+            if ((actions & SimulationActions.F15Key) != 0) list.Add(() => SendKeyPress(0x7E));
+            if ((actions & SimulationActions.AltTab) != 0) list.Add(SwitchWindowActivity);
+            if (list.Count == 0) list.Add(MicroMouseMovement);
+            list[random.Next(list.Count)]();
         }
         private void MicroMouseMovement()
         {

@@ -28,6 +28,10 @@ namespace Insomnia
         private readonly ListView excluded = new ListView { View = View.Details, FullRowSelect = true, HideSelection = false, MultiSelect = false, Height = 138, Dock = DockStyle.Top };
         private readonly ListBox detected = new ListBox { Height = 108, Dock = DockStyle.Top, IntegralHeight = false, HorizontalScrollbar = true };
         private readonly TextBox ssid = new TextBox { Dock = DockStyle.Fill, AccessibleName = "Nazwa sieci SSID" };
+        private readonly CheckBox cbSimMouseMove = new CheckBox { Text = "Mikro-ruchy myszą (Microsoft Teams, Slack, Skype, wygaszacz)", AutoSize = true, AccessibleName = "Mikro-ruchy myszą" };
+        private readonly CheckBox cbSimF15 = new CheckBox { Text = "Niewidoczny klawisz F15 (dyskretny impuls bez ruszania kursorem)", AutoSize = true, AccessibleName = "Niewidoczny klawisz F15" };
+        private readonly CheckBox cbSimMouseWheel = new CheckBox { Text = "Kółko myszy (subtelna aktywność dla przeglądarek i dokumentów)", AutoSize = true, AccessibleName = "Kółko myszy" };
+        private readonly CheckBox cbSimAltTab = new CheckBox { Text = "Przełączanie okien Alt+Tab (dla narzędzi monitorujących, np. Time Doctor)", AutoSize = true, AccessibleName = "Przełączanie okien Alt+Tab" };
         private readonly Label statusLabel = TextLabel("");
         private readonly Label dirtyLabel = TextLabel("Brak niezapisanych zmian");
         private readonly Label diagnostics = TextLabel("Oczekiwanie na pierwszy skan.");
@@ -69,36 +73,44 @@ namespace Insomnia
             Add(heading, statusLabel);
             root.Controls.Add(heading, 0, 0);
 
-            var scroll = new Panel { Dock = DockStyle.Fill, AutoScroll = true, Padding = new Padding(20, 0, 20, 0) };
-            var content = Stack();
-            content.Dock = DockStyle.Top;
-            content.Padding = new Padding(0, 0, 0, 16);
-            scroll.Controls.Add(content);
-            root.Controls.Add(scroll, 0, 1);
+            var tabs = new TabControl { Dock = DockStyle.Fill, Margin = new Padding(16, 0, 16, 0), Padding = new Point(12, 6) };
+            var tabRules = new TabPage { Text = "Harmonogram i Wi-Fi", BackColor = Color.FromArgb(246, 248, 251), Padding = new Padding(8, 8, 8, 8), UseVisualStyleBackColor = false };
+            var tabSimulation = new TabPage { Text = "Symulacja i Zgodność", BackColor = Color.FromArgb(246, 248, 251), Padding = new Padding(8, 8, 8, 8), UseVisualStyleBackColor = false };
+            tabs.TabPages.Add(tabRules);
+            tabs.TabPages.Add(tabSimulation);
+            root.Controls.Add(tabs, 0, 1);
 
-            Add(content, SectionTitle("Harmonogram"));
-            Add(content, useSchedule);
+            // Tab 1: Harmonogram i Wi-Fi
+            var scrollRules = new Panel { Dock = DockStyle.Fill, AutoScroll = true, Padding = new Padding(12, 0, 12, 0) };
+            var contentRules = Stack();
+            contentRules.Dock = DockStyle.Top;
+            contentRules.Padding = new Padding(0, 0, 0, 16);
+            scrollRules.Controls.Add(contentRules);
+            tabRules.Controls.Add(scrollRules);
+
+            Add(contentRules, SectionTitle("Harmonogram"));
+            Add(contentRules, useSchedule);
             var times = Flow();
             times.Controls.Add(TextLabel("Od")); times.Controls.Add(start);
             times.Controls.Add(TextLabel("Do")); times.Controls.Add(end);
-            Add(content, times);
+            Add(contentRules, times);
             var daysFlow = Flow();
             daysFlow.Controls.Add(TextLabel("Dni:"));
             foreach (var cb in dayBoxes) daysFlow.Controls.Add(cb);
-            Add(content, daysFlow);
-            Add(content, TextLabel("Te same godziny oznaczają całą dobę. Obsługiwany jest zakres przez północ (godziny nocne przypisywane są do zmiany z wybranego dnia)."));
+            Add(contentRules, daysFlow);
+            Add(contentRules, TextLabel("Te same godziny oznaczają całą dobę. Obsługiwany jest zakres przez północ (godziny nocne przypisywane są do zmiany z wybranego dnia)."));
 
-            Add(content, SectionTitle("Reguły sieci Wi-Fi"));
-            Add(content, TextLabel("Wybierz zachowanie programu przy wykryciu sieci z poniższej listy:"));
+            Add(contentRules, SectionTitle("Reguły sieci Wi-Fi"));
+            Add(contentRules, TextLabel("Wybierz zachowanie programu przy wykryciu sieci z poniższej listy:"));
             var wifiModeFlow = Flow();
             wifiModeFlow.Controls.Add(rbBlockWifi);
             wifiModeFlow.Controls.Add(rbAllowWifi);
-            Add(content, wifiModeFlow);
-            Add(content, TextLabel("Dodawaj do listy roboczej, a następnie wybierz Zastosuj lub Zapisz i zamknij."));
+            Add(contentRules, wifiModeFlow);
+            Add(contentRules, TextLabel("Dodawaj do listy roboczej, a następnie wybierz Zastosuj lub Zapisz i zamknij."));
             excluded.Columns.Add("Zapisane / edytowane SSID", 340);
             excluded.Columns.Add("Widoczność", 210);
             excluded.AccessibleName = "Lista sieci Wi-Fi";
-            Add(content, excluded);
+            Add(contentRules, excluded);
             var entry = new TableLayoutPanel { AutoSize = true, Dock = DockStyle.Top, ColumnCount = 2, RowCount = 1 };
             entry.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             entry.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
@@ -106,28 +118,58 @@ namespace Insomnia
             var add = Button("Dodaj");
             add.Click += (s, e) => AddSsid(ssid.Text, true);
             entry.Controls.Add(ssid, 0, 0); entry.Controls.Add(add, 1, 0);
-            Add(content, entry);
+            Add(contentRules, entry);
             var remove = Button("Usuń zaznaczoną");
             remove.Click += (s, e) => { if (excluded.SelectedItems.Count > 0) { excluded.Items.Remove(excluded.SelectedItems[0]); UpdateDirty(); } };
-            Add(content, remove);
+            Add(contentRules, remove);
 
-            Add(content, SectionTitle("Diagnostyka Wi-Fi"));
-            Add(content, TextLabel("SSID wykryte w zasięgu — połączenie z siecią nie jest wymagane."));
+            Add(contentRules, SectionTitle("Diagnostyka Wi-Fi"));
+            Add(contentRules, TextLabel("SSID wykryte w zasięgu — połączenie z siecią nie jest wymagane."));
             detected.AccessibleName = "Aktualnie wykryte sieci";
-            Add(content, detected);
+            Add(contentRules, detected);
             var scanButtons = Flow();
             refresh.Click += (s, e) => RefreshRequested?.Invoke(this, EventArgs.Empty);
             var addDetected = Button("Dodaj zaznaczoną do listy sieci");
             addDetected.Click += (s, e) => { if (detected.SelectedItem != null) AddSsid((string)detected.SelectedItem, false); else this.reportError("Zaznacz wykrytą sieć."); };
             scanButtons.Controls.Add(refresh); scanButtons.Controls.Add(addDetected);
-            Add(content, scanButtons);
-            Add(content, lastScan); Add(content, diagnostics);
+            Add(contentRules, scanButtons);
+            Add(contentRules, lastScan); Add(contentRules, diagnostics);
             var location = Button("Ustawienia lokalizacji Windows");
             location.Click += (s, e) => {
                 try { Process.Start(new ProcessStartInfo("ms-settings:privacy-location") { UseShellExecute = true }); }
                 catch (Exception ex) { this.reportError("Nie można otworzyć ustawień: " + ex.Message); }
             };
-            Add(content, location);
+            Add(contentRules, location);
+
+            // Tab 2: Symulacja i Zgodność
+            var scrollSimulation = new Panel { Dock = DockStyle.Fill, AutoScroll = true, Padding = new Padding(12, 0, 12, 0) };
+            var contentSimulation = Stack();
+            contentSimulation.Dock = DockStyle.Top;
+            contentSimulation.Padding = new Padding(0, 0, 0, 16);
+            scrollSimulation.Controls.Add(contentSimulation);
+            tabSimulation.Controls.Add(scrollSimulation);
+
+            Add(contentSimulation, SectionTitle("Działania podtrzymujące status"));
+            Add(contentSimulation, TextLabel("Wybierz działania, które program ma wykonywać podczas symulacji aktywności (gdy nie pracujesz):"));
+
+            var actionsStack = Stack();
+            actionsStack.Padding = new Padding(8, 4, 8, 4);
+            Add(actionsStack, cbSimMouseMove);
+            Add(actionsStack, cbSimF15);
+            Add(actionsStack, cbSimMouseWheel);
+            Add(actionsStack, cbSimAltTab);
+            Add(contentSimulation, actionsStack);
+
+            Add(contentSimulation, TextLabel("Wskazówka: Opcja Alt+Tab jest domyślnie wyłączona, aby uniknąć zmiany aktywnego okna podczas prezentacji lub pracy w programach pełnoekranowych. Pozostałe 3 działania są w pełni dyskretne i niewidoczne dla otoczenia."));
+
+            Add(contentSimulation, SectionTitle("Wspierane aplikacje i skuteczność"));
+            Add(contentSimulation, TextLabel("🟢 Microsoft Teams (Desktop & Web)\nStały zielony status „Dostępny” (Available). Zapobiega przejściu w automatyczny żółty status „Zaraz wracam” (Away / Inactive)."));
+            Add(contentSimulation, TextLabel("🟢 Slack / Skype / Zoom / Webex\nResetuje wewnętrzne liczniki bezczynności aplikacji, zapobiegając uśpieniu statusu obecności."));
+            Add(contentSimulation, TextLabel("🟢 Blokada ekranu i wygaszacz Windows (GPO / Intune)\nZapobiega wylogowaniu i zablokowaniu stacji roboczej przez polityki korporacyjne IT (Active Directory / Intune)."));
+            Add(contentSimulation, TextLabel("🟡 Ewidencja czasu pracy (Hubstaff, Time Doctor, DeskTime)\nRejestruje impulsy klawisza i myszy. W przypadku programów sprawdzających aktywność w konkretnym oknie, włącz opcję „Przełączanie okien Alt+Tab”."));
+
+            Add(contentSimulation, SectionTitle("Zasada dyskrecji (Stealth)"));
+            Add(contentSimulation, TextLabel("Insomnia symuluje aktywność wyłącznie wtedy, gdy przez co najmniej 25 sekund nie dotykasz myszy ani klawiatury. Gdy pracujesz przy komputerze, program natychmiast ustępuje miejsca i nie ingeruje w Twoje działania."));
 
             var footer = new TableLayoutPanel {
                 Name = "Footer",
@@ -172,6 +214,7 @@ namespace Insomnia
             SetSelectedDays(baseline.ScheduleDays);
             rbBlockWifi.Checked = (baseline.WifiMode == WifiRuleMode.BlockOnMatching);
             rbAllowWifi.Checked = (baseline.WifiMode == WifiRuleMode.AllowOnlyOnMatching);
+            SetSelectedSimulationActions(baseline.SimulationActions);
             foreach (string name in baseline.ExcludedSsids) excluded.Items.Add(new ListViewItem(new[] { name, "Brak aktualnych danych" }));
             useSchedule.CheckedChanged += (s, e) => { UpdateSchedule(); UpdateDirty(); };
             start.ValueChanged += (s, e) => UpdateDirty();
@@ -179,12 +222,21 @@ namespace Insomnia
             foreach (var cb in dayBoxes) cb.CheckedChanged += (s, e) => UpdateDirty();
             rbBlockWifi.CheckedChanged += (s, e) => UpdateDirty();
             rbAllowWifi.CheckedChanged += (s, e) => UpdateDirty();
+            cbSimMouseMove.CheckedChanged += (s, e) => UpdateDirty();
+            cbSimF15.CheckedChanged += (s, e) => UpdateDirty();
+            cbSimMouseWheel.CheckedChanged += (s, e) => UpdateDirty();
+            cbSimAltTab.CheckedChanged += (s, e) => UpdateDirty();
             ssid.TextChanged += (s, e) => UpdateDirty();
             UpdateSchedule();
             FormClosing += OnClosing;
             // Text wraps at the actual available width, including when DPI changes.
-            content.SizeChanged += (s, e) => WrapLabels(content, content.ClientSize.Width - 12);
+            contentRules.SizeChanged += (s, e) => WrapLabels(contentRules, scrollRules.ClientSize.Width - 24);
+            contentSimulation.SizeChanged += (s, e) => WrapLabels(contentSimulation, scrollSimulation.ClientSize.Width - 24);
             heading.SizeChanged += (s, e) => WrapLabels(heading, heading.ClientSize.Width - heading.Padding.Horizontal - 12);
+            tabs.SelectedIndexChanged += (s, e) => {
+                if (tabs.SelectedTab == tabRules) WrapLabels(contentRules, scrollRules.ClientSize.Width - 24);
+                else if (tabs.SelectedTab == tabSimulation) WrapLabels(contentSimulation, scrollSimulation.ClientSize.Width - 24);
+            };
             ResumeLayout(true);
             UpdateDirty();
         }
@@ -206,9 +258,13 @@ namespace Insomnia
         private Label SectionTitle(string text) { var label = TextLabel(text); label.Font = new Font(Font, FontStyle.Bold); label.ForeColor = Accent; label.Margin = new Padding(3, 16, 3, 8); return label; }
         private static Button Button(string text) { return new Button { Text = text, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Padding = new Padding(10, 4, 10, 4), Margin = new Padding(3, 3, 6, 3), UseVisualStyleBackColor = true }; }
         private static DateTimePicker TimePicker(string name) { return new DateTimePicker { Format = DateTimePickerFormat.Custom, CustomFormat = "HH:mm", ShowUpDown = true, Width = 108, AccessibleName = name }; }
-        private static void WrapLabels(TableLayoutPanel panel, int width)
+        private static void WrapLabels(Control container, int width)
         {
-            foreach (var label in panel.Controls.OfType<Label>()) label.MaximumSize = new Size(Math.Max(100, width), 0);
+            foreach (Control c in container.Controls)
+            {
+                if (c is Label label) label.MaximumSize = new Size(Math.Max(100, width), 0);
+                else if (c.HasChildren) WrapLabels(c, width);
+            }
         }
         private void UpdateSchedule()
         {
@@ -230,6 +286,22 @@ namespace Insomnia
                 cb.Checked = (days & day) == day;
             }
         }
+        private SimulationActions GetSelectedSimulationActions()
+        {
+            SimulationActions actions = SimulationActions.None;
+            if (cbSimMouseMove.Checked) actions |= SimulationActions.MouseMove;
+            if (cbSimMouseWheel.Checked) actions |= SimulationActions.MouseWheel;
+            if (cbSimF15.Checked) actions |= SimulationActions.F15Key;
+            if (cbSimAltTab.Checked) actions |= SimulationActions.AltTab;
+            return actions;
+        }
+        private void SetSelectedSimulationActions(SimulationActions actions)
+        {
+            cbSimMouseMove.Checked = (actions & SimulationActions.MouseMove) != 0;
+            cbSimMouseWheel.Checked = (actions & SimulationActions.MouseWheel) != 0;
+            cbSimF15.Checked = (actions & SimulationActions.F15Key) != 0;
+            cbSimAltTab.Checked = (actions & SimulationActions.AltTab) != 0;
+        }
         private AppConfiguration Draft()
         {
             return new AppConfiguration { ScheduleEnabled = useSchedule.Checked,
@@ -237,6 +309,7 @@ namespace Insomnia
                 ScheduleEnd = TimeSpan.FromMinutes(end.Value.Hour * 60 + end.Value.Minute),
                 ScheduleDays = GetSelectedDays(),
                 WifiMode = rbAllowWifi.Checked ? WifiRuleMode.AllowOnlyOnMatching : WifiRuleMode.BlockOnMatching,
+                SimulationActions = GetSelectedSimulationActions(),
                 ExcludedSsids = excluded.Items.Cast<ListViewItem>().Select(x => x.Text).ToList() };
         }
         internal bool HasChanges
@@ -246,6 +319,7 @@ namespace Insomnia
                 return ssid.Text.Length != 0 || draft.ScheduleEnabled != baseline.ScheduleEnabled ||
                     draft.ScheduleStart != baseline.ScheduleStart || draft.ScheduleEnd != baseline.ScheduleEnd ||
                     draft.ScheduleDays != baseline.ScheduleDays || draft.WifiMode != baseline.WifiMode ||
+                    draft.SimulationActions != baseline.SimulationActions ||
                     !draft.ExcludedSsids.SequenceEqual(baseline.ExcludedSsids, StringComparer.Ordinal);
             }
         }
