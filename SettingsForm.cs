@@ -23,8 +23,6 @@ namespace Insomnia
             new CheckBox { Text = "Sb", AutoSize = true, Tag = ScheduleDays.Saturday },
             new CheckBox { Text = "Nd", AutoSize = true, Tag = ScheduleDays.Sunday }
         };
-        private readonly Button btnWorkdays = Button("Dni robocze (Pn–Pt)");
-        private readonly Button btnAllDays = Button("Wszystkie");
         private readonly RadioButton rbBlockWifi = new RadioButton { Text = "Wyłączaj program, gdy wykryto sieć z listy (np. w biurze)", AutoSize = true };
         private readonly RadioButton rbAllowWifi = new RadioButton { Text = "Działaj tylko wtedy, gdy wykryto sieć z listy (np. w domu)", AutoSize = true };
         private readonly ListView excluded = new ListView { View = View.Details, FullRowSelect = true, HideSelection = false, MultiSelect = false, Height = 138, Dock = DockStyle.Top };
@@ -53,8 +51,8 @@ namespace Insomnia
             AutoScaleDimensions = new SizeF(96, 96);
             AutoScaleMode = AutoScaleMode.Dpi;
             BackColor = Color.FromArgb(246, 248, 251);
-            ClientSize = new Size(680, 840);
-            MinimumSize = new Size(620, 520);
+            ClientSize = new Size(660, 680);
+            MinimumSize = new Size(620, 480);
             StartPosition = FormStartPosition.CenterScreen;
 
             var root = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3 };
@@ -87,8 +85,6 @@ namespace Insomnia
             var daysFlow = Flow();
             daysFlow.Controls.Add(TextLabel("Dni:"));
             foreach (var cb in dayBoxes) daysFlow.Controls.Add(cb);
-            daysFlow.Controls.Add(btnWorkdays);
-            daysFlow.Controls.Add(btnAllDays);
             Add(content, daysFlow);
             Add(content, TextLabel("Te same godziny oznaczają całą dobę. Obsługiwany jest zakres przez północ (godziny nocne przypisywane są do zmiany z wybranego dnia)."));
 
@@ -133,13 +129,30 @@ namespace Insomnia
             };
             Add(content, location);
 
-            var footer = Stack();
-            footer.Name = "Footer";
-            footer.Padding = new Padding(16, 10, 16, 12);
-            footer.BackColor = Color.White;
-            Add(footer, dirtyLabel);
+            var footer = new TableLayoutPanel {
+                Name = "Footer",
+                Dock = DockStyle.Bottom,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                BackColor = Color.White,
+                Padding = new Padding(16, 6, 16, 6),
+                Margin = Padding.Empty,
+                ColumnCount = 2,
+                RowCount = 1
+            };
+            footer.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            footer.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+            dirtyLabel.Anchor = AnchorStyles.Left;
+            dirtyLabel.Margin = new Padding(0, 0, 16, 0);
+            footer.Controls.Add(dirtyLabel, 0, 0);
+
             var buttons = Flow();
             buttons.FlowDirection = FlowDirection.RightToLeft;
+            buttons.WrapContents = false;
+            buttons.Margin = Padding.Empty;
+            buttons.Dock = DockStyle.Fill;
             var cancel = Button("Anuluj");
             var saveClose = Button("Zapisz i zamknij");
             saveClose.BackColor = Accent; saveClose.ForeColor = Color.White; saveClose.FlatStyle = FlatStyle.Flat;
@@ -147,7 +160,8 @@ namespace Insomnia
             apply.Click += (s, e) => TryApply();
             saveClose.Click += (s, e) => { if (TryApply()) { discardOnClose = true; Close(); } };
             buttons.Controls.Add(cancel); buttons.Controls.Add(saveClose); buttons.Controls.Add(apply);
-            Add(footer, buttons);
+            footer.Controls.Add(buttons, 1, 0);
+
             root.Controls.Add(footer, 0, 2);
             Controls.Add(root);
             CancelButton = cancel;
@@ -163,8 +177,6 @@ namespace Insomnia
             start.ValueChanged += (s, e) => UpdateDirty();
             end.ValueChanged += (s, e) => UpdateDirty();
             foreach (var cb in dayBoxes) cb.CheckedChanged += (s, e) => UpdateDirty();
-            btnWorkdays.Click += (s, e) => { SetSelectedDays(ScheduleDays.Workdays); UpdateDirty(); };
-            btnAllDays.Click += (s, e) => { SetSelectedDays(ScheduleDays.All); UpdateDirty(); };
             rbBlockWifi.CheckedChanged += (s, e) => UpdateDirty();
             rbAllowWifi.CheckedChanged += (s, e) => UpdateDirty();
             ssid.TextChanged += (s, e) => UpdateDirty();
@@ -203,7 +215,6 @@ namespace Insomnia
             bool enabled = useSchedule.Checked;
             start.Enabled = end.Enabled = enabled;
             foreach (var cb in dayBoxes) cb.Enabled = enabled;
-            btnWorkdays.Enabled = btnAllDays.Enabled = enabled;
         }
         private ScheduleDays GetSelectedDays()
         {
