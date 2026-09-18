@@ -12,19 +12,31 @@ namespace Insomnia.Properties
 {
 
 
-    [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "11.0.0.0")]
     internal sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase
     {
 
-        private static Settings defaultInstance = ((Settings)(global::System.Configuration.ApplicationSettingsBase.Synchronized(new Settings())));
+        private static readonly Settings defaultInstance = (Settings)global::System.Configuration.ApplicationSettingsBase.Synchronized(new Settings());
 
-        public static Settings Default
-        {
-            get
-            {
-                return defaultInstance;
-            }
-        }
+        public static Settings Default { get { return defaultInstance; } }
+
+        [global::System.Configuration.UserScopedSetting]
+        [global::System.Configuration.DefaultSettingValue("True")]
+        public bool ManuallyEnabled { get { return (bool)this["ManuallyEnabled"]; } set { this["ManuallyEnabled"] = value; } }
+
+        [global::System.Configuration.UserScopedSetting]
+        [global::System.Configuration.DefaultSettingValue("False")]
+        public bool ScheduleEnabled { get { return (bool)this["ScheduleEnabled"]; } set { this["ScheduleEnabled"] = value; } }
+
+        [global::System.Configuration.UserScopedSetting]
+        [global::System.Configuration.DefaultSettingValue("08:00:00")]
+        public global::System.TimeSpan ScheduleStart { get { return (global::System.TimeSpan)this["ScheduleStart"]; } set { this["ScheduleStart"] = value; } }
+
+        [global::System.Configuration.UserScopedSetting]
+        [global::System.Configuration.DefaultSettingValue("17:00:00")]
+        public global::System.TimeSpan ScheduleEnd { get { return (global::System.TimeSpan)this["ScheduleEnd"]; } set { this["ScheduleEnd"] = value; } }
+
+        [global::System.Configuration.UserScopedSetting]
+        [global::System.Configuration.DefaultSettingValue("")]
+        public global::System.Collections.Specialized.StringCollection ExcludedSsids { get { return (global::System.Collections.Specialized.StringCollection)this["ExcludedSsids"]; } set { this["ExcludedSsids"] = value; } }
     }
 }
